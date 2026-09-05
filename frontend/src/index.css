@@ -1,0 +1,499 @@
+/* ==========================================================================
+   AgentCommerce — "Midnight Ledger"
+   A financial audit-console aesthetic: ink-black surfaces, hairline rules,
+   warm paper text, and a single signal-amber accent for interactivity.
+   Green/red are RESERVED for approved/denied guardrail states only.
+   ========================================================================== */
+
+:root {
+  /* Surfaces — layered ink, like stacked ledger stock */
+  --ink-0: #0b1016;   /* page */
+  --ink-1: #101820;   /* panel */
+  --ink-2: #16212b;   /* inset / filled card */
+  --ink-3: #1d2b37;   /* hover fill */
+
+  /* Hairlines */
+  --rule: #22313e;
+  --rule-strong: #33485a;
+
+  /* Text — warm paper on ink */
+  --paper: #ece6d8;
+  --paper-dim: #93a2ad;
+
+  /* Accents */
+  --amber: #e8a33d;        /* THE interactive color — ticker/ledger stamp */
+  --amber-deep: #b97a22;
+  --amber-wash: rgba(232, 163, 61, 0.10);
+  --steel: #7fa8c9;        /* informational only, never interactive */
+
+  /* RESERVED: guardrail verdicts. Do not reuse elsewhere. */
+  --approved: #3fae7a;
+  --approved-bg: rgba(63, 174, 122, 0.12);
+  --denied: #d95f5f;
+  --denied-bg: rgba(217, 95, 95, 0.12);
+
+  --font-body: "Public Sans", "Segoe UI", sans-serif;
+  --font-ledger: "Fraunces", Georgia, serif;
+  --font-data: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+
+  --ease: cubic-bezier(0.22, 0.9, 0.3, 1);
+
+  font-family: var(--font-body);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  color: var(--paper);
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.55;
+  background:
+    radial-gradient(1000px 520px at 85% -10%, rgba(232, 163, 61, 0.05), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(127, 168, 201, 0.05), transparent 55%),
+    var(--ink-0);
+  background-attachment: fixed;
+}
+
+/* Ledger paper grain: faint horizontal rules, like a bound book */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 27px,
+    rgba(236, 230, 216, 0.016) 27px,
+    rgba(236, 230, 216, 0.016) 28px
+  );
+}
+
+h1, h2, h3, h4 { font-family: var(--font-ledger); }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+button:disabled { cursor: not-allowed; }
+
+input { font-family: inherit; }
+
+/* Mono is for DATA only: prices, IDs, timestamps, numeric bounds. */
+code, .mono {
+  font-family: var(--font-data);
+  font-feature-settings: "liga" 0;
+}
+
+/* Visible keyboard focus on every interactive element */
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+/* The ONE deliberate motion in this UI: a Policy Agent ruling stamps
+   onto the ledger. Used nowhere else. */
+@keyframes stamp {
+  0%   { opacity: 0; transform: scale(1.6) rotate(-6deg); }
+  60%  { opacity: 1; transform: scale(0.94) rotate(1deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- Shell ---------- */
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--ink-1);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-ledger);
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: 0.01em;
+  color: var(--paper);
+}
+
+.brand-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  align-self: center;
+  background: var(--amber);
+  box-shadow: 0 0 10px rgba(232, 163, 61, 0.55);
+  flex-shrink: 0;
+}
+
+/* Tabs — a segmented ledger index, not pills */
+.tabs {
+  display: flex;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--rule);
+  color: var(--paper-dim);
+  padding: 7px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.18s var(--ease), color 0.18s var(--ease),
+    transform 0.18s var(--ease);
+}
+.tab-btn:last-child { border-right: none; }
+.tab-btn:hover:not(.active) {
+  color: var(--paper);
+  background: var(--ink-2);
+  transform: scale(1.06);
+}
+.tab-btn.active {
+  background: var(--amber);
+  color: var(--ink-0);
+}
+.tab-btn:active { transform: scale(0.94); }
+
+.main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
+  gap: 16px;
+  padding: 16px 24px;
+  overflow: hidden;
+  height: 100%;
+}
+
+/* ---------- Panels ---------- */
+
+.panel {
+  background: var(--ink-1);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-ledger);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--paper);
+}
+
+/* The two halves of the console: acting vs. checking.
+   Amber rule = the agent acts here. Steel rule = the system checks here. */
+.panel-header::before {
+  content: "";
+  width: 3px;
+  height: 16px;
+  border-radius: 1px;
+  background: var(--panel-rule, var(--amber));
+}
+.panel-header.rule-teal { --panel-rule: var(--amber); }
+.panel-header.rule-purple { --panel-rule: var(--steel); }
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* ---------- Chat ---------- */
+
+.chat-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.msg {
+  max-width: 92%;
+  padding: 10px 14px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+}
+.msg.user {
+  align-self: flex-end;
+  background: var(--ink-3);
+  border: 1px solid var(--rule-strong);
+}
+.msg.agent {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--steel);
+}
+
+/* ---------- Goal form ---------- */
+
+.goal-form {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--rule);
+}
+.goal-form input {
+  flex: 1;
+  background: var(--ink-0);
+  border: 1px solid var(--rule);
+  color: var(--paper);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+  transition: border-color 0.2s var(--ease);
+}
+.goal-form input::placeholder { color: var(--paper-dim); }
+.goal-form input:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+.goal-form input:focus-visible { outline: none; }
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  border: 1px solid var(--rule-strong);
+  background: var(--ink-2);
+  color: var(--paper);
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.18s var(--ease), border-color 0.18s var(--ease),
+    color 0.18s var(--ease), transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+.btn:hover:not(:disabled) {
+  background: var(--ink-3);
+  border-color: var(--paper-dim);
+  transform: scale(1.04);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.btn:active:not(:disabled) { transform: scale(0.95); }
+
+.btn.primary {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--ink-0);
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--amber-deep);
+  border-color: var(--amber-deep);
+  color: var(--paper);
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(232, 163, 61, 0.35);
+}
+.btn.primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn.ghost { background: transparent; border-color: var(--rule); }
+.btn.ghost:hover:not(:disabled) { background: var(--ink-2); }
+.btn.small { padding: 6px 12px; font-size: 12px; }
+
+/* ---------- Cards ---------- */
+
+/* Base card: a ledger entry — flat, hairline rule, no shadow. */
+.card {
+  background: var(--ink-2);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+/* Only genuinely clickable cards get interactive affordance. */
+.card.interactive {
+  transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease),
+    transform 0.22s var(--ease), box-shadow 0.22s var(--ease);
+}
+.card.interactive:hover {
+  border-color: var(--rule-strong);
+  background: var(--ink-3);
+  transform: scale(1.025) translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+}
+.card.interactive:active {
+  transform: scale(0.99);
+  transition-duration: 0.08s;
+}
+.card.interactive:focus-within {
+  border-color: var(--amber);
+}
+
+/* ---------- Cart ---------- */
+
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.cart-item:last-child { border-bottom: none; }
+
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 10px;
+  margin-top: 6px;
+  border-top: 1px solid var(--rule-strong);
+  font-weight: 700;
+}
+.cart-total .mono { font-size: 15px; }
+
+/* ---------- Guardrail verdicts (green/red live ONLY here) ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  animation: stamp 0.4s var(--ease) both;
+}
+.badge.approved { background: var(--approved-bg); color: var(--approved); border: 1px solid var(--approved); }
+.badge.denied { background: var(--denied-bg); color: var(--denied); border: 1px solid var(--denied); }
+
+/* ---------- Policy log — a ruled ledger ---------- */
+
+.policy-log {
+  border-left: 2px solid var(--rule);
+  padding-left: 14px;
+  margin-left: 4px;
+}
+.policy-entry {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--rule);
+}
+.policy-entry:last-child { border-bottom: none; }
+.policy-entry .reason { color: var(--paper-dim); font-size: 12.5px; margin-top: 4px; }
+.policy-entry .bounds { font-size: 11.5px; color: var(--paper-dim); margin-top: 6px; font-family: var(--font-data); }
+.policy-entry .bounds span { display: inline-block; margin-right: 10px; }
+
+/* ---------- Upsell ---------- */
+
+.upsell-card {
+  border: 1px solid var(--rule-strong);
+  border-left: 3px solid var(--amber);
+  border-radius: 6px;
+  padding: 12px;
+  background: var(--ink-2);
+}
+.upsell-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+/* ---------- Audit table ---------- */
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.audit-table th {
+  text-align: left;
+  color: var(--paper-dim);
+  font-weight: 600;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--rule-strong);
+  position: sticky;
+  top: 0;
+  background: var(--ink-1);
+  font-size: 12px;
+}
+.audit-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+.audit-table tbody tr {
+  transition: background-color 0.15s var(--ease);
+}
+.audit-table tbody tr:hover { background: var(--ink-2); }
+
+/* Status pills in the audit table: verdict colors only appear for
+   approved/denied-family values; everything else is neutral steel. */
+.status-pill {
+  padding: 2px 9px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.status-pill.approved, .status-pill.captured, .status-pill.completed, .status-pill.valid, .status-pill.ok, .status-pill.created { background: var(--approved-bg); color: var(--approved); }
+.status-pill.denied, .status-pill.failed, .status-pill.invalid, .status-pill.error { background: var(--denied-bg); color: var(--denied); }
+.status-pill.suggested, .status-pill.none { background: var(--ink-3); color: var(--steel); }
+
+/* ---------- Utilities ---------- */
+
+.dim { color: var(--paper-dim); }
+.empty-state {
+  color: var(--paper-dim);
+  font-size: 13px;
+  padding: 28px 24px;
+  text-align: center;
+  border: 1px dashed var(--rule);
+  border-radius: 6px;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 860px) {
+  .app-header { padding: 12px 16px; gap: 12px; flex-wrap: wrap; }
+  .app-header > .dim { display: none; }
+  .tabs { margin-left: auto; }
+  .main-grid {
+    grid-template-columns: 1fr !important;
+    overflow-y: auto;
+    padding: 12px 16px 18px;
+  }
+  .main-grid > .panel:first-child { min-height: 62vh; }
+  .main-grid > div { overflow: visible !important; }
+}
+
+@media (max-width: 560px) {
+  .brand { font-size: 17px; }
+  .tabs { width: 100%; }
+  .tab-btn { flex: 1; }
+  .goal-form { padding: 10px; }
+  .goal-form .btn { padding-inline: 13px; }
+}
