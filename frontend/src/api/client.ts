@@ -1,4 +1,7 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const _envBase = import.meta.env.VITE_API_BASE_URL;
+const BASE_URL =
+  _envBase ??
+  (typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:8000" : "/api");
 
 export type CartItem = {
   product_id: string;
@@ -94,7 +97,8 @@ export type AuditEvent = {
 };
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const url = `${BASE_URL}${path}`;
+  const res = await fetch(url, {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
